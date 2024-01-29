@@ -423,7 +423,17 @@ define("colorreductionmanagement", ["require", "exports", "common", "lib/cluster
                         }
                     }
                 }
+                /*
+                    TOTAL STUDIO: let determine the most used colors on the picture sort id desc
+                    get the occurence limit if user sets kMeansNrOfClusters (used colors )
+                 */
+                let centroids = [];
+                const sortedEntries = Object.entries(pointsByColor).sort((a, b) => b[1].length - a[1].length);
+                const sortedObj = Object.fromEntries(sortedEntries);
+                const mostUsedColorLimit = sortedEntries[settings.kMeansNrOfClusters-1][1].length;
+
                 for (const color of Object.keys(pointsByColor)) {
+
                     const rgb = color.split(",").map((v) => parseInt(v));
                     // determine vector data based on color space conversion
                     let data;
@@ -444,10 +454,14 @@ define("colorreductionmanagement", ["require", "exports", "common", "lib/cluster
                     const vec = new clustering_1.Vector(data, weight);
                     vec.tag = rgb;
                     vectors[vIdx++] = vec;
+                    if(pointsByColor[color].length >= mostUsedColorLimit ){
+                        centroids.push(vec);
+                    }
                 }
                 const random = new random_1.Random(settings.randomSeed);
                 // vectors of all the unique colors are built, time to cluster them
-                const kmeans = new clustering_1.KMeans(vectors, settings.kMeansNrOfClusters, random);
+                //const kmeans = new clustering_1.KMeans(vectors, settings.kMeansNrOfClusters, random);
+                const kmeans = new clustering_1.KMeans(vectors, centroids.length, random, centroids);
                 let curTime = new Date().getTime();
                 kmeans.step();
                 while (kmeans.currentDeltaDistanceDifference > settings.kMeansMinDeltaDifference) {
